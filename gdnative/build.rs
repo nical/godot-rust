@@ -356,9 +356,15 @@ impl {name} {{"#, name = class.name
                 params.push_str(", varargs: &[Variant]");
             }
 
+            let self_param = if method.is_const {
+                "&self"
+            } else {
+                "&mut self"
+            };
+
             writeln!(output, r#"
 
-    pub fn {name}<{type_params}>(&self{params}) -> {rust_ret_type} {{
+    pub fn {name}<{type_params}>({self_param}{params}) -> {rust_ret_type} {{
         unsafe {{
             let api = ::get_api();
             static mut METHOD_BIND: *mut sys::godot_method_bind = 0 as _;
@@ -373,8 +379,13 @@ impl {name} {{"#, name = class.name
                 debug_assert!(!METHOD_BIND.is_null());
             }});
 
-            "#, cname = class.name, name = method_name, rust_ret_type = rust_ret_type, params = params,
-                type_params = type_params).unwrap();
+            "#, cname = class.name,
+                name = method_name,
+                rust_ret_type = rust_ret_type,
+                params = params,
+                type_params = type_params,
+                self_param = self_param,
+            ).unwrap();
             if method.has_varargs {
                 writeln!(output, r#"
             let mut argument_buffer: Vec<*const sys::godot_variant> = Vec::with_capacity({arg_count} + varargs.len());
